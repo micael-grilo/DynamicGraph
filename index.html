@@ -39,12 +39,14 @@
 
         // Authorization scopes required by the API; multiple scopes can be
         // included, separated by spaces.
-        var SCOPES = "https://www.googleapis.com/auth/spreadsheets.readonly";
+        var SCOPES = "https://www.googleapis.com/auth/spreadsheets";
 
         var authorizeButton = document.getElementById('authorize-button');
         var signoutButton = document.getElementById('signout-button');
 
         var slider;
+        var chart;
+        var flag = true;
         /**
          *  On load, called to load the auth2 library and API client library.
          */
@@ -81,7 +83,7 @@
             if (isSignedIn) {
                 authorizeButton.style.display = 'none';
                 signoutButton.style.display = 'block';
-                listMajors();
+                getValues();
             } else {
                 authorizeButton.style.display = 'block';
                 signoutButton.style.display = 'none';
@@ -106,7 +108,7 @@
          * Get and print spreadsheet
          * https://docs.google.com/spreadsheets/d/1M_3K4wThO1hvcu5_ZLHOike_aJzKwI_vg8olv133dTY/edit
          */
-        function listMajors() {
+        function getValues() {
             gapi.client.sheets.spreadsheets.values.get({
                 spreadsheetId: '1M_3K4wThO1hvcu5_ZLHOike_aJzKwI_vg8olv133dTY',
                 range: 'Sheet1!B7:Z',
@@ -120,22 +122,43 @@
                         var row = range.values[i];
                         for (j = 0; j < row.length; j++) {
                             switch (i) {
-                                case 0: age.push(row[j]); break;
-                                case 1: amount.push(row[j]); break;
-                                case 2: value.push(row[j]); break;
+                                case 0: age.push(parseInt(row[j])); break;
+                                case 1: amount.push(parseInt(row[j])); break;
+                                case 2: value.push(parseInt(row[j])); break;
                             }
                         }
                     }
-                    graph(age, value);
+                    if (flag){
+                        drawGraph(age, value);
+                        flag = false;
+                    }else{
+                        updateGraph(age, value);
+                    }
                 } else {
-                    appendPre('No data found.');
+                    console.log('No data found.');
                 }
             }, function (response) {
-                appendPre('Error: ' + response.result.error.message);
+                console.log('Error: ' + response.result.error.message);
             });
         }
 
-        function graph(age, value) {
+        function setValues(value) {
+            gapi.client.sheets.spreadsheets.values.update({
+                spreadsheetId: '1M_3K4wThO1hvcu5_ZLHOike_aJzKwI_vg8olv133dTY',
+                range: 'Sheet1!B5',
+                valueInputOption: 'USER_ENTERED',
+                values: [[value]]
+            }).then(function (response) {
+                var result = response.result;
+                getValues();
+                console.log(result);
+            }, function (response) {
+                console.log(response.result);
+            });
+        }
+
+
+        function drawGraph(age, value) {
             var ctx = document.getElementById('myChart').getContext('2d');
             var data = {
                 labels: age,
@@ -162,7 +185,7 @@
                 }]
             };
 
-            var chart = new Chart(ctx, {
+            chart = new Chart(ctx, {
                 type: 'line',
                 data: data,
                 options: {}
@@ -171,23 +194,21 @@
             slider = new Slider("#ex13", {
                 min: 50,
                 max: age[age.length - 1],
-                value: 60
+                value: age[value.indexOf(Math.max(...value))+1]
             });
 
             slider.on("change", function (event) {
                 var sliderValue = event.newValue;
-                value[0] = 300;
-                var step = 10;
-                for (i = 1; i < age.length; i++) {
-                    if (age[i] < sliderValue)
-                        value[i] = value[i - 1] + step;
-                    else
-                        value[i] = value[i - 1] - step;
-                }
-                chart.data.datasets[0].data = value;
-                chart.update();
+                setValues(sliderValue);
             });
         }
+
+        function updateGraph(age, value) {
+                chart.data.labels = age;
+                chart.data.datasets[0].data = value;
+                chart.update();
+        }
+
     </script>
 
     <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()" onreadystatechange="if (this.readyState === 'complete') this.onload()">
