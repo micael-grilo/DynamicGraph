@@ -1,0 +1,21 @@
+.chart{
+    margin-left: 100px;
+    width: 70% !important;
+    height: 35% !important;
+}
+
+.slider.slider-horizontal{
+    left: 35px;
+    top: -40px;
+    width: -webkit-calc(100% - 45px);
+    width: -moz-calc(100% - 45px);
+    width: calc(100% - 45px);
+}
+
+.slider-track{
+    display:none;
+}
+
+#ex13{
+        display: none;
+}
